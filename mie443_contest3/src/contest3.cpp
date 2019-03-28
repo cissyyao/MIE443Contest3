@@ -18,8 +18,7 @@ void bumperCB(const kobuki_msgs::BumperEvent msg){ //need to change this!!!!!
 
 void cliffCB(const kobuki_msgs::CliffEvent msg ) {
 	
-	
-	world_state = 6;
+	//if cliff sensors at state 1, 	world_state = 6;
 }
 
 //-------------------------------------------------------------
@@ -86,7 +85,8 @@ int main(int argc, char **argv)
 		
 		
 		else if(world_state == 6) { //i.e. lifted up
-			
+			//display franklin excited face
+			//play laughing sound
 			
 		}
 		secondsElapsed = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now()-start).count();
