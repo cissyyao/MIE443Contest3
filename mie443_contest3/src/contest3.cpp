@@ -16,6 +16,11 @@ void bumperCB(const kobuki_msgs::BumperEvent msg){ //need to change this!!!!!
     //Fill with code
 }
 
+void cliffCB(const kobuki_msgs::CliffEvent msg ) {
+	
+	//if cliff sensors at state 1, 	world_state = 6;
+}
+
 //-------------------------------------------------------------
 
 int main(int argc, char **argv)
@@ -32,6 +37,7 @@ int main(int argc, char **argv)
 	//subscribers
 	ros::Subscriber follower = nh.subscribe("follower_velocity_smoother/smooth_cmd_vel", 10, &followerCB);
 	ros::Subscriber bumper = nh.subscribe("mobile_base/events/bumper", 10, &bumperCB);
+	ros::Subscriber cliff = nh.subscribe("mobile_base/events/cliff", 10, &cliffCB);
 	
 	std::chrono::time_point<std::chrono::system_clock> start;
 	start = std::chrono::system_clock::now();
@@ -74,6 +80,13 @@ int main(int argc, char **argv)
 			}
 			
 			if ((secondsElapsed - surprisedStart) <= 15)
+			
+		}
+		
+		
+		else if(world_state == 6) { //i.e. lifted up
+			//display franklin excited face
+			//play laughing sound
 			
 		}
 		secondsElapsed = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now()-start).count();
