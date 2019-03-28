@@ -3,7 +3,7 @@
 #include <imageTransporter.hpp>
 #include <kobuki_msgs/BumperEvent.h>
 
-using namespace std;
+using namespace std; 
 
 geometry_msgs::Twist follow_cmd;
 int world_state;
