@@ -60,11 +60,14 @@ int main(int argc, char **argv)
 			//vel_pub.publish(vel);
 			vel_pub.publish(follow_cmd);
 
-		}else if(world_state == 1){
-			/*
-			...
-			...
-			*/
+		}
+		else if(world_state == 1){
+		}
+		else if(world_state == 2){
+		}
+		else if(world_state == 3){
+		}
+		else if(world_state == 4){
 		}
 	}
 
