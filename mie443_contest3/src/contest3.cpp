@@ -25,28 +25,35 @@ void cliffCB(const kobuki_msgs::CliffEvent msg ) {
 }
 
 void laserCallback(const sensor_msgs::LaserScan::ConstPtr& msg){
-	//fill with your code
 	laserSize = (msg->angle_max - msg->angle_min)/msg->angle_increment;
 	laserOffset = desiredAngle*pi/(180*msg->angle_increment);
-	laserRange = 11;
 
-	if(desiredAngle*pi/180 < msg->angle_max && -desiredAngle*pi/180 > msg->angle_min){
-		for (int i = laserSize/2 - laserOffset; i < laserSize/2 + laserOffset; i++){
-			if(laserRange > msg->ranges[i])
-				laserRange = msg->ranges[i];
-		}
-	}
-	else{
-		for(int i = 0; i < laserSize; i++){
-			if (laserRange > msg->ranges[i])
-				laserRange = msg->ranges[i];
-		}
+	double x[640], y[640], d[640]; //an array of all x and y distance values of laser readings
+	
+	incr= msg->angle_increment;
+	angle_ri = msg->angle_min;
+	angle_lef= msg->angle_max;
+	for (int i = 0; i<= 639; ++i) {
+		d[i] = msg->ranges[i];
+		x[i] = d[i]*(cos((pi/2.0) - 0.506145 + (i)*incr));
+		y[i] = d[i]*(sin((pi/2.0) - 0.506145 + (i)*incr));
+		
 	}
 
-	if (laserRange == 11)
-	laserRange = 0;
+	x_bar1 = avgranges(x, 0, 125); //array size 126
+	x_bar2 = avgranges(x, 126, 250); //array size 125
+	
+	fLeftY = avgranges(y, 370, 469);
+	fRightY = avgranges(y, 170, 269);
 
-	//ROS_INFO("Size of laser scan array: %i and size of offset: %i", laserSize, laserOffset);
+	centreD = avgranges(d, 269, 369);           
+	rightD = avgranges(d,0,99);
+	leftD = avgranges(d, 539, 639);
+
+	if ( rightD < 1) {
+		control = (-1)* (p) * (x_bar2-x_bar1);   
+	}
+	else control=0;
 }
 
 //-------------------------------------------------------------
