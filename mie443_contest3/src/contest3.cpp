@@ -65,17 +65,66 @@ int main(int argc, char **argv)
 			//fill with your code
 			//vel_pub.publish(vel);
 			vel_pub.publish(follow_cmd);
-
-		}else if(world_state == 1){
 			
+			if (vel_pub.publish < 0.05 && !frontBump && !leftBump && !rightBump && frontdist > 1){
+				world_state = 1;
+			}
+
+		}
+		//world_state1 is surprised at owner's disappearance
+		else if(world_state == 1){
+			
+			vel_pub.publish(follow_cmd);
+			
+			if (vel_pub.publish > 0.05 || frontdist > 1 (!frontBump && !leftBump && !rightBump)){
+				world_state = 0;
+				
 			if (FirstTime == true){
 				suprisedStart = secondsElapsed;
 				FirstTime = false;
+				sc.playWave(mie443_contest3/sounds+"surpised.wav"); //figure out which the sound is playing continuously
+				Mat surpriseFace = imread("filename");
+				imshow(surpriseFace);
+				
+				//jerk back in surprise initially
+				linear = -2;
+				angular = 0;
+				vel.linear.x = linear;
+				vel.angular.z = 0;
+				vel_pub.publish(vel);
+				sleep(2);
+				linear = 0;
+				vel.linear.x = linear;
+				vel_pub.publish(vel);
+				
+				
 			}
 			
-			if ((secondsElapsed - surprisedStart) <= 15)
+			if ((secondsElapsed - surprisedStart) >= 15){
+				world_state = 2;
+				FirstTime = true;
+			}
 			
 		}
+		else if(world_state == 2){
+			sc.playWave(mie443_contest3/sounds+"scared.wav");
+			Mat scaredFace = imread("filename");
+			imshow(scaredFace);
+			
+			angular = pi;
+			linear = 0;
+			vel.linear.x = linear;
+			vel.angular.z = 0;
+			vel_pub.publish(vel);
+			sleep(1);
+			angular = -pi;
+			vel.angular.z = 0;
+			vel_pub.publish(vel);
+			sleep(2);
+			
+			if(			
+		}
+		
 		secondsElapsed = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now()-start).count();
 	}
 
