@@ -70,8 +70,10 @@ int main(int argc, char **argv)
 		else if(world_state == 4){
 			Mat angry;
 			angry = imread("/home/turtlebot/catkin_ws/src/mie443_contest3/angry.jpg", CV_LOAD_IMAGE_COLOR);
-			namedWindow( "Display window", WINDOW_AUTOSIZE );
-			imshow( "Display window", image ); 
+			//namedWindow( "Display window", WINDOW_AUTOSIZE );
+			imshow( "Display window", angry ); 
+		}
+		else if(world_state == 5){
 		}
 	}
 
