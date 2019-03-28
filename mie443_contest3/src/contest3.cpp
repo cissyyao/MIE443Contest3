@@ -8,6 +8,9 @@ using namespace std; //hello
 geometry_msgs::Twist follow_cmd;
 int world_state;
 
+double laserRange = 10;
+int laserSize = 0, laserOffset = 0, desiredAngle = 10;
+
 void followerCB(const geometry_msgs::Twist msg){
     follow_cmd = msg;
 }
@@ -19,6 +22,31 @@ void bumperCB(const kobuki_msgs::BumperEvent msg){ //need to change this!!!!!
 void cliffCB(const kobuki_msgs::CliffEvent msg ) {
 	
 	//if cliff sensors at state 1, 	world_state = 6;
+}
+
+void laserCallback(const sensor_msgs::LaserScan::ConstPtr& msg){
+	//fill with your code
+	laserSize = (msg->angle_max - msg->angle_min)/msg->angle_increment;
+	laserOffset = desiredAngle*pi/(180*msg->angle_increment);
+	laserRange = 11;
+
+	if(desiredAngle*pi/180 < msg->angle_max && -desiredAngle*pi/180 > msg->angle_min){
+		for (int i = laserSize/2 - laserOffset; i < laserSize/2 + laserOffset; i++){
+			if(laserRange > msg->ranges[i])
+				laserRange = msg->ranges[i];
+		}
+	}
+	else{
+		for(int i = 0; i < laserSize; i++){
+			if (laserRange > msg->ranges[i])
+				laserRange = msg->ranges[i];
+		}
+	}
+
+	if (laserRange == 11)
+	laserRange = 0;
+
+	//ROS_INFO("Size of laser scan array: %i and size of offset: %i", laserSize, laserOffset);
 }
 
 //-------------------------------------------------------------
@@ -82,8 +110,9 @@ int main(int argc, char **argv)
 			
 			vel_pub.publish(follow_cmd);
 			
-			if (vel_pub.publish > 0.05 || frontdist > 1 (!frontBump && !leftBump && !rightBump)){
+			if (vel_pub.publish > 0.05 && !frontBump && !leftBump && !rightBump && frontDist < 1){
 				world_state = 0;
+			}
 				
 			if (FirstTime == true){
 				suprisedStart = secondsElapsed;
