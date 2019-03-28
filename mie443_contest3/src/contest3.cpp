@@ -19,6 +19,7 @@ void bumperCB(const kobuki_msgs::BumperEvent msg){ //need to change this!!!!!
 void cliffCB(const kobuki_msgs::CliffEvent msg ) {
 	
 	
+	world_state = 6;
 }
 
 //-------------------------------------------------------------
