@@ -2,7 +2,18 @@
 #include <ros/package.h>
 #include <imageTransporter.hpp>
 #include <kobuki_msgs/BumperEvent.h>
-#include <kobuki_msgs/CliffEvent.h>
+#include <sensor_msgs/LaserScan.h>
+#include <geometry_msgs/Twist.h>
+#include <chrono>
+#include <ros/console.h>
+#include <ros/ros.h>
+#include <stdlib.h>
+#include <stdio.h>
+#include <cmath>
+
+#include <iostream>
+
+
 
 using namespace std; //hello
 
@@ -13,6 +24,11 @@ double frontDist = 0.0;
 double laserRange = 10;
 int laserSize = 0, laserOffset = 0, desiredAngle = 10;
 bool bumperLeft=0, bumperCenter=0, bumperRight=0;
+
+//odom variables
+double posX, posY, yaw;
+double pi = 3.14159;;
+
 
 void followerCB(const geometry_msgs::Twist msg){
     follow_cmd = msg;
@@ -28,72 +44,38 @@ void bumperCB(const kobuki_msgs::BumperEvent msg){
 		bumperRight = !bumperRight;
 }
 
-void cliffCB(const kobuki_msgs::CliffEvent msg ) {
+/*void cliffCB(const kobuki_msgs::CliffEvent msg ) {
 	
-	//if cliff sensors lifted (state 1), world_state = 6
-	if(msg.cliff == 0) {			
-		cliffLeft = !cliffLeft;     
-		ROS_INFO("LEFT CLIFF IS LIFTED");
-		world_state = 6;
-	}
-	
-	else if(msg.cliff == 1)	{
-		cliffCenter = !cliffCenter;
-		ROS_INFO("MIDDLE CLIFF IS LIFTED");
-		world_state = 6;
-	}
-	
-	else if(msg.cliff == 2) {
-		cliffRight = !cliffRight;
-		ROS_INFO("RIGHT CLIFF IS LIFTED");
-		world_state = 6;
-	}
+	//if cliff sensors at state 1, 	world_state = 6;
 }
-
+*/
 void laserCallback(const sensor_msgs::LaserScan::ConstPtr& msg){
 	laserSize = (msg->angle_max - msg->angle_min)/msg->angle_increment;
 	laserOffset = desiredAngle*pi/(180*msg->angle_increment);
 
-	double x[640], y[640], d[640]; //an array of all x and y distance values of laser readings
+	double d[640]; //an array of all d
 	
-	incr= msg->angle_increment;
-	angle_ri = msg->angle_min;
-	angle_lef= msg->angle_max;
+	
 	for (int i = 0; i<= 639; ++i) {
 		d[i] = msg->ranges[i];
-		x[i] = d[i]*(cos((pi/2.0) - 0.506145 + (i)*incr));
-		y[i] = d[i]*(sin((pi/2.0) - 0.506145 + (i)*incr));
 		
 	}
 
 
-	if (laserRange == 11)
-	laserRange = 0;
-	
-	double x[640], y[640], d[640];
-	incr= msg->angle_increment;
-	angle_ri = msg->angle_min;
-	angle_lef= msg->angle_max;
-	for (int i = 0; i<= 639; ++i) {
-		d[i] = msg->ranges[i];
-		x[i] = d[i]*(cos((pi/2.0) - 0.506145 + (i)*incr));
-		y[i] = d[i]*(sin((pi/2.0) - 0.506145 + (i)*incr));
-		
-	}
-	
-	double n = 0.0;
+	int n = 0;
 	
 	//centreD = avgranges(d, 269, 369);
 	
-	for (i=269; i<=369; ++i) {
+	for ( int j=269; j<=369; ++j) {
 
-	        if (d[i] == d[i]) {		// check if a real number
-        	    frontDist += d[i];
+	        if (d[j] == d[j]) {		// check if a real number
+        	    frontDist += d[j];
             	    n+=1;
         	}
     }
     
    frontDist = frontDist/n;
+  }
 
 //-------------------------------------------------------------
 
@@ -111,7 +93,7 @@ int main(int argc, char **argv)
 	//subscribers
 	ros::Subscriber follower = nh.subscribe("follower_velocity_smoother/smooth_cmd_vel", 10, &followerCB);
 	ros::Subscriber bumper = nh.subscribe("mobile_base/events/bumper", 10, &bumperCB);
-	ros::Subscriber cliff = nh.subscribe("mobile_base/events/cliff", 10, &cliffCB);
+	//ros::Subscriber cliff = nh.subscribe("mobile_base/events/cliff", 10, &cliffCB);
 	
 	std::chrono::time_point<std::chrono::system_clock> start;
 	start = std::chrono::system_clock::now();
@@ -149,17 +131,17 @@ int main(int argc, char **argv)
 			//vel_pub.publish(vel);
 			vel_pub.publish(follow_cmd);
 			
-			if (vel_pub.publish < 0.05 && !bumperCenter && !bumperLeft && !bumperRight && frontDist > 1 && !cliffCenter && !cliffLeft && !cliffRight) { 
-				world_state = 1;
-			}
+			//if (vel_pub.publish < 0.05 && !bumperCenter && !bumperLeft && !bumperRight && frontDist > 1){ 
+			//	world_state = 1;
+			//}
 
 		}
 		//world_state1 is surprised at owner's disappearance
-		else if(world_state == 1){
+		/*else if(world_state == 1){
 			
 			vel_pub.publish(follow_cmd);
 			
-			if (vel_pub.publish > 0.05 && !bumperCenter && !bumperLeft && !bumperRight && frontDist < 1 && !cliffCenter && !cliffLeft && !cliffRight) {
+			if (vel_pub.publish > 0.05 && !bumperCenter && !bumperLeft && !bumperRight && frontDist < 1){
 				world_state = 0;
 			}
 				
@@ -209,7 +191,7 @@ int main(int argc, char **argv)
 			vel_pub.publish(vel);
 			sleep(2);
 			
-			if (vel_pub.publish > 0.05 && !bumperCenter && !bumperLeft && !bumperRight && frontDist < 1 && !cliffCenter && !cliffLeft && !cliffRight){
+			if (vel_pub.publish > 0.05 && !bumperCenter && !bumperLeft && !bumperRight && frontDist < 1){
 				world_state = 0;
 			}
 		}
@@ -217,13 +199,10 @@ int main(int argc, char **argv)
 		else if(world_state == 6) { //i.e. lifted up
 			//display franklin excited face
 			//play laughing sound
-			//sc.playWave(mie443_contest3/sounds+"excited.wav"); //figure out which the sound is playing continuously
-			//Mat excitedFace = imread("filename");
-			//imshow(excitedFace);
-			ROS_INFO("EXCITED!!");
+			
 		}
 		secondsElapsed = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now()-start).count();
-	}
+	}*/
 
 	return 0;
 }
