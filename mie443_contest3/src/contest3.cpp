@@ -2,6 +2,7 @@
 #include <ros/package.h>
 #include <imageTransporter.hpp>
 #include <kobuki_msgs/BumperEvent.h>
+#include <kobuki_msgs/CliffEvent.h>
 
 using namespace std; //hello
 
@@ -148,7 +149,7 @@ int main(int argc, char **argv)
 			//vel_pub.publish(vel);
 			vel_pub.publish(follow_cmd);
 			
-			if (vel_pub.publish < 0.05 && !bumperCenter && !bumperLeft && !bumperRight && frontDist > 1){ 
+			if (vel_pub.publish < 0.05 && !bumperCenter && !bumperLeft && !bumperRight && frontDist > 1 && !cliffCenter && !cliffLeft && !cliffRight) { 
 				world_state = 1;
 			}
 
@@ -158,7 +159,7 @@ int main(int argc, char **argv)
 			
 			vel_pub.publish(follow_cmd);
 			
-			if (vel_pub.publish > 0.05 && !bumperCenter && !bumperLeft && !bumperRight && frontDist < 1){
+			if (vel_pub.publish > 0.05 && !bumperCenter && !bumperLeft && !bumperRight && frontDist < 1 && !cliffCenter && !cliffLeft && !cliffRight) {
 				world_state = 0;
 			}
 				
@@ -208,7 +209,7 @@ int main(int argc, char **argv)
 			vel_pub.publish(vel);
 			sleep(2);
 			
-			if (vel_pub.publish > 0.05 && !bumperCenter && !bumperLeft && !bumperRight && frontDist < 1){
+			if (vel_pub.publish > 0.05 && !bumperCenter && !bumperLeft && !bumperRight && frontDist < 1 && !cliffCenter && !cliffLeft && !cliffRight){
 				world_state = 0;
 			}
 		}
@@ -216,7 +217,10 @@ int main(int argc, char **argv)
 		else if(world_state == 6) { //i.e. lifted up
 			//display franklin excited face
 			//play laughing sound
-			
+			//sc.playWave(mie443_contest3/sounds+"excited.wav"); //figure out which the sound is playing continuously
+			//Mat excitedFace = imread("filename");
+			//imshow(excitedFace);
+			ROS_INFO("EXCITED!!");
 		}
 		secondsElapsed = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now()-start).count();
 	}
