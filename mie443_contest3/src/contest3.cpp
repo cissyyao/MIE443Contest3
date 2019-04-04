@@ -11,12 +11,29 @@ int world_state;
 double laserRange = 10;
 int laserSize = 0, laserOffset = 0, desiredAngle = 10;
 
+//bumper variables
+bool bumperLeft=0, bumperCenter=0, bumperRight=0;
+
+
 void followerCB(const geometry_msgs::Twist msg){
     follow_cmd = msg;
 }
 
 void bumperCB(const kobuki_msgs::BumperEvent msg){ //need to change this!!!!!
     //Fill with code
+	if(msg.bumper == 0)			
+		bumperLeft = !bumperLeft;     //1 means it has been hit
+	else if(msg.bumper == 1)
+		
+		{
+		bumperCenter = !bumperCenter;
+		ROS_INFO("MIDDLE BUMPER IS HIT");
+		}
+	
+	else if(msg.bumper == 2)
+		bumperRight = !bumperRight;
+}
+
 }
 
 void cliffCB(const kobuki_msgs::CliffEvent msg ) {
