@@ -2,7 +2,11 @@
 #include <ros/package.h>
 #include <imageTransporter.hpp>
 #include <kobuki_msgs/BumperEvent.h>
+#include <opencv2/core/core.hpp>
+#include <opencv2/highgui/highgui.hpp>
+#include <iostream>
 
+using namespace cv;
 using namespace std;
 
 geometry_msgs::Twist follow_cmd;
@@ -37,7 +41,7 @@ int main(int argc, char **argv)
 	//imageTransporter rgbTransport("camera/rgb/image_raw", sensor_msgs::image_encodings::BGR8); //--for turtlebot Camera
 	imageTransporter depthTransport("camera/depth_registered/image_raw", sensor_msgs::image_encodings::TYPE_32FC1);
 
-	int world_state = 0;
+	int world_state = 4;
 
 	double angular = 0.2;
 	double linear = 0.0;
@@ -68,10 +72,10 @@ int main(int argc, char **argv)
 		else if(world_state == 3){
 		}
 		else if(world_state == 4){
-			Mat angry;
-			angry = imread("/home/turtlebot/catkin_ws/src/mie443_contest3/angry.jpg", CV_LOAD_IMAGE_COLOR);
-			//namedWindow( "Display window", WINDOW_AUTOSIZE );
-			imshow( "Display window", angry ); 
+			Mat angry = imread("/home/cissy/catkin_ws/src/mie443_contest3/angry.jpg", CV_LOAD_IMAGE_COLOR);
+			namedWindow("Angry", WINDOW_AUTOSIZE);
+			imshow("Angry", angry); 
+			waitKey(0);
 		}
 		else if(world_state == 5){
 		}
