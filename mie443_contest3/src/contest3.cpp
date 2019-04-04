@@ -29,7 +29,24 @@ void bumperCB(const kobuki_msgs::BumperEvent msg){
 
 void cliffCB(const kobuki_msgs::CliffEvent msg ) {
 	
-	//if cliff sensors at state 1, 	world_state = 6;
+	//if cliff sensors lifted (state 1), world_state = 6
+	if(msg.cliff == 0) {			
+		cliffLeft = !cliffLeft;     
+		ROS_INFO("LEFT CLIFF IS LIFTED");
+		world_state = 6;
+	}
+	
+	else if(msg.cliff == 1)	{
+		cliffCenter = !cliffCenter;
+		ROS_INFO("MIDDLE CLIFF IS LIFTED");
+		world_state = 6;
+	}
+	
+	else if(msg.cliff == 2) {
+		cliffRight = !cliffRight;
+		ROS_INFO("RIGHT CLIFF IS LIFTED");
+		world_state = 6;
+	}
 }
 
 void laserCallback(const sensor_msgs::LaserScan::ConstPtr& msg){
