@@ -12,7 +12,9 @@ int world_state;
 double frontDist = 0.0;
 double laserRange = 10;
 int laserSize = 0, laserOffset = 0, desiredAngle = 10;
+
 bool bumperLeft=0, bumperCenter=0, bumperRight=0;
+bool wheelLeft = 0, wheelRight = 0;
 
 void followerCB(const geometry_msgs::Twist msg){
     follow_cmd = msg;
@@ -31,13 +33,13 @@ void bumperCB(const kobuki_msgs::BumperEvent msg){
 void wheel_dropCB(const kobuki_msgs::WheelDropEvent msg ) {
 	
 	//if wheel drop sensors lifted (state 1), world_state = 6
-	if(msg.wheel_drop == 0) {			
+	if(msg.DROPPED == 0) {			
 		wheelLeft = !wheelLeft;     
 		ROS_INFO("LEFT WHEEL IS LIFTED");
 		world_state = 6;
 	}
 	
-	else if(msg.wheel_drop == 1)	{
+	else if(msg.DROPPED == 1)	{
 		wheelRight = !wheelRight;
 		ROS_INFO("RIGHT WHEEL IS LIFTED");
 		world_state = 6;
