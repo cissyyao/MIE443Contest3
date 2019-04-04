@@ -3,13 +3,10 @@
 #include <imageTransporter.hpp>
 #include <kobuki_msgs/BumperEvent.h>
 
-using namespace std; //hello
+using namespace std;
 
 geometry_msgs::Twist follow_cmd;
 int world_state;
-
-double laserRange = 10;
-int laserSize = 0, laserOffset = 0, desiredAngle = 10;
 
 void followerCB(const geometry_msgs::Twist msg){
     follow_cmd = msg;
@@ -17,43 +14,6 @@ void followerCB(const geometry_msgs::Twist msg){
 
 void bumperCB(const kobuki_msgs::BumperEvent msg){ //need to change this!!!!!
     //Fill with code
-}
-
-void cliffCB(const kobuki_msgs::CliffEvent msg ) {
-	
-	//if cliff sensors at state 1, 	world_state = 6;
-}
-
-void laserCallback(const sensor_msgs::LaserScan::ConstPtr& msg){
-	laserSize = (msg->angle_max - msg->angle_min)/msg->angle_increment;
-	laserOffset = desiredAngle*pi/(180*msg->angle_increment);
-
-	double x[640], y[640], d[640]; //an array of all x and y distance values of laser readings
-	
-	incr= msg->angle_increment;
-	angle_ri = msg->angle_min;
-	angle_lef= msg->angle_max;
-	for (int i = 0; i<= 639; ++i) {
-		d[i] = msg->ranges[i];
-		x[i] = d[i]*(cos((pi/2.0) - 0.506145 + (i)*incr));
-		y[i] = d[i]*(sin((pi/2.0) - 0.506145 + (i)*incr));
-		
-	}
-
-	x_bar1 = avgranges(x, 0, 125); //array size 126
-	x_bar2 = avgranges(x, 126, 250); //array size 125
-	
-	fLeftY = avgranges(y, 370, 469);
-	fRightY = avgranges(y, 170, 269);
-
-	centreD = avgranges(d, 269, 369);           
-	rightD = avgranges(d,0,99);
-	leftD = avgranges(d, 539, 639);
-
-	if ( rightD < 1) {
-		control = (-1)* (p) * (x_bar2-x_bar1);   
-	}
-	else control=0;
 }
 
 //-------------------------------------------------------------
@@ -72,11 +32,6 @@ int main(int argc, char **argv)
 	//subscribers
 	ros::Subscriber follower = nh.subscribe("follower_velocity_smoother/smooth_cmd_vel", 10, &followerCB);
 	ros::Subscriber bumper = nh.subscribe("mobile_base/events/bumper", 10, &bumperCB);
-	ros::Subscriber cliff = nh.subscribe("mobile_base/events/cliff", 10, &cliffCB);
-	
-	std::chrono::time_point<std::chrono::system_clock> start;
-	start = std::chrono::system_clock::now();
-	uint64_t secondsElapsed = 0;
 
 	imageTransporter rgbTransport("camera/image/", sensor_msgs::image_encodings::BGR8); //--for Webcam
 	//imageTransporter rgbTransport("camera/rgb/image_raw", sensor_msgs::image_encodings::BGR8); //--for turtlebot Camera
@@ -90,8 +45,6 @@ int main(int argc, char **argv)
 	geometry_msgs::Twist vel;
 	vel.angular.z = angular;
 	vel.linear.x = linear;
-	
-	bool FirstTimeSurprised = true;
 
 	sc.playWave(path_to_sounds + "sound.wav");
 	ros::Duration(0.5).sleep();
@@ -106,73 +59,13 @@ int main(int argc, char **argv)
 			//fill with your code
 			//vel_pub.publish(vel);
 			vel_pub.publish(follow_cmd);
-			
-			if (vel_pub.publish < 0.05 && !frontBump && !leftBump && !rightBump && frontdist > 1){
-				world_state = 1;
-			}
 
+		}else if(world_state == 1){
+			/*
+			...
+			...
+			*/
 		}
-		//world_state1 is surprised at owner's disappearance
-		else if(world_state == 1){
-			
-			vel_pub.publish(follow_cmd);
-			
-			if (vel_pub.publish > 0.05 && !frontBump && !leftBump && !rightBump && frontDist < 1){
-				world_state = 0;
-			}
-				
-			if (FirstTime == true){
-				suprisedStart = secondsElapsed;
-				FirstTime = false;
-				sc.playWave(mie443_contest3/sounds+"surpised.wav"); //figure out which the sound is playing continuously
-				Mat surpriseFace = imread("filename");
-				imshow(surpriseFace);
-				
-				//jerk back in surprise initially
-				linear = -2;
-				angular = 0;
-				vel.linear.x = linear;
-				vel.angular.z = 0;
-				vel_pub.publish(vel);
-				sleep(2);
-				linear = 0;
-				vel.linear.x = linear;
-				vel_pub.publish(vel);
-				
-				
-			}
-			
-			if ((secondsElapsed - surprisedStart) >= 15){
-				world_state = 2;
-				FirstTime = true;
-			}
-			
-		}
-		else if(world_state == 2){
-			sc.playWave(mie443_contest3/sounds+"scared.wav");
-			Mat scaredFace = imread("filename");
-			imshow(scaredFace);
-			
-			angular = pi;
-			linear = 0;
-			vel.linear.x = linear;
-			vel.angular.z = 0;
-			vel_pub.publish(vel);
-			sleep(1);
-			angular = -pi;
-			vel.angular.z = 0;
-			vel_pub.publish(vel);
-			sleep(2);
-			
-			if(			
-		}
-		
-		else if(world_state == 6) { //i.e. lifted up
-			//display franklin excited face
-			//play laughing sound
-			
-		}
-		secondsElapsed = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now()-start).count();
 	}
 
 	return 0;
