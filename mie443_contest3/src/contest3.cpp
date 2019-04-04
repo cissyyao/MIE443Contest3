@@ -140,17 +140,22 @@ int main(int argc, char **argv)
 		//.....**E-STOP DO NOT TOUCH**.......
 		//eStop.block();
 		//...................................
-
+		
+		//check owner's disappearance
+		if (vel_pub.publish < 0.05 && !bumperCenter && !bumperLeft && !bumperRight && frontDist > 1 && !wheelLeft && !wheelRight) { 
+		world_state = 1;
+		}
+		
+		//neutral state, following human
 		if(world_state == 0){
 			//fill with your code
 			//vel_pub.publish(vel);
 			vel_pub.publish(follow_cmd);
-			
-			if (vel_pub.publish < 0.05 && !bumperCenter && !bumperLeft && !bumperRight && frontDist > 1 && !wheelLeft && !wheelRight) { 
-				world_state = 1;
-			}
+			//show image of happy franklin
+			//play happy music
 
 		}
+
 		//world_state1 is surprised at owner's disappearance
 		else if(world_state == 1){
 			
@@ -190,6 +195,7 @@ int main(int argc, char **argv)
 			}
 			
 		}
+		//after >15s of owner's disappearance
 		else if(world_state == 2){
 			sc.playWave(mie443_contest3/sounds+"scared.wav");
 			Mat scaredFace = imread("filename");
@@ -211,7 +217,12 @@ int main(int argc, char **argv)
 			}
 		}
 		
-		else if(world_state == 6) { //i.e. lifted up
+		//world_state == 3, cannot track bc obstacle
+		//world_state=4, bumper hit once
+		//world_state=5, bumper hit multiple times
+		
+		//robot lifted up (excited)
+		else if(world_state == 6) { 
 			//display franklin excited face
 			//play laughing sound
 			//sc.playWave(mie443_contest3/sounds+"excited.wav"); //figure out which the sound is playing continuously
