@@ -75,7 +75,8 @@ int main(int argc, char **argv)
 			Mat angry = imread("/home/cissy/catkin_ws/src/mie443_contest3/angry.jpg", CV_LOAD_IMAGE_COLOR);
 			namedWindow("Angry", WINDOW_AUTOSIZE);
 			imshow("Angry", angry); 
-			waitKey(0);
+			waitKey(2000);
+			destroyWindow("Angry");
 		}
 		else if(world_state == 5){
 		}
