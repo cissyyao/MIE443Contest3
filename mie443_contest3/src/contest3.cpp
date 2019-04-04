@@ -2,7 +2,7 @@
 #include <ros/package.h>
 #include <imageTransporter.hpp>
 #include <kobuki_msgs/BumperEvent.h>
-#include <kobuki_msgs/CliffEvent.h>
+#include <kobuki_msgs/WheelDropEvent.h>
 
 using namespace std; //hello
 
@@ -28,26 +28,21 @@ void bumperCB(const kobuki_msgs::BumperEvent msg){
 		bumperRight = !bumperRight;
 }
 
-void cliffCB(const kobuki_msgs::CliffEvent msg ) {
+void wheel_dropCB(const kobuki_msgs::WheelDropEvent msg ) {
 	
-	//if cliff sensors lifted (state 1), world_state = 6
-	if(msg.cliff == 0) {			
-		cliffLeft = !cliffLeft;     
-		ROS_INFO("LEFT CLIFF IS LIFTED");
+	//if wheel drop sensors lifted (state 1), world_state = 6
+	if(msg.wheel_drop == 0) {			
+		wheelLeft = !wheelLeft;     
+		ROS_INFO("LEFT WHEEL IS LIFTED");
 		world_state = 6;
 	}
 	
-	else if(msg.cliff == 1)	{
-		cliffCenter = !cliffCenter;
-		ROS_INFO("MIDDLE CLIFF IS LIFTED");
+	else if(msg.wheel_drop == 1)	{
+		wheelRight = !wheelRight;
+		ROS_INFO("RIGHT WHEEL IS LIFTED");
 		world_state = 6;
 	}
 	
-	else if(msg.cliff == 2) {
-		cliffRight = !cliffRight;
-		ROS_INFO("RIGHT CLIFF IS LIFTED");
-		world_state = 6;
-	}
 }
 
 void laserCallback(const sensor_msgs::LaserScan::ConstPtr& msg){
@@ -111,7 +106,7 @@ int main(int argc, char **argv)
 	//subscribers
 	ros::Subscriber follower = nh.subscribe("follower_velocity_smoother/smooth_cmd_vel", 10, &followerCB);
 	ros::Subscriber bumper = nh.subscribe("mobile_base/events/bumper", 10, &bumperCB);
-	ros::Subscriber cliff = nh.subscribe("mobile_base/events/cliff", 10, &cliffCB);
+	ros::Subscriber wheel_drop = nh.subscribe("mobile_base/events/wheel_drop", 10, &wheel_dropCB);
 	
 	std::chrono::time_point<std::chrono::system_clock> start;
 	start = std::chrono::system_clock::now();
@@ -149,7 +144,7 @@ int main(int argc, char **argv)
 			//vel_pub.publish(vel);
 			vel_pub.publish(follow_cmd);
 			
-			if (vel_pub.publish < 0.05 && !bumperCenter && !bumperLeft && !bumperRight && frontDist > 1 && !cliffCenter && !cliffLeft && !cliffRight) { 
+			if (vel_pub.publish < 0.05 && !bumperCenter && !bumperLeft && !bumperRight && frontDist > 1 && !wheelLeft && !wheelRight) { 
 				world_state = 1;
 			}
 
@@ -159,7 +154,7 @@ int main(int argc, char **argv)
 			
 			vel_pub.publish(follow_cmd);
 			
-			if (vel_pub.publish > 0.05 && !bumperCenter && !bumperLeft && !bumperRight && frontDist < 1 && !cliffCenter && !cliffLeft && !cliffRight) {
+			if (vel_pub.publish > 0.05 && !bumperCenter && !bumperLeft && !bumperRight && frontDist < 1 && !wheelLeft && !wheelRight) {
 				world_state = 0;
 			}
 				
@@ -209,7 +204,7 @@ int main(int argc, char **argv)
 			vel_pub.publish(vel);
 			sleep(2);
 			
-			if (vel_pub.publish > 0.05 && !bumperCenter && !bumperLeft && !bumperRight && frontDist < 1 && !cliffCenter && !cliffLeft && !cliffRight){
+			if (vel_pub.publish > 0.05 && !bumperCenter && !bumperLeft && !bumperRight && frontDist < 1 && !wheelLeft && !wheelRight) {
 				world_state = 0;
 			}
 		}
