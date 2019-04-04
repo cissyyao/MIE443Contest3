@@ -8,15 +8,23 @@ using namespace std; //hello
 geometry_msgs::Twist follow_cmd;
 int world_state;
 
+double frontDist = 0.0;
 double laserRange = 10;
 int laserSize = 0, laserOffset = 0, desiredAngle = 10;
+bool bumperLeft=0, bumperCenter=0, bumperRight=0;
 
 void followerCB(const geometry_msgs::Twist msg){
     follow_cmd = msg;
 }
 
-void bumperCB(const kobuki_msgs::BumperEvent msg){ //need to change this!!!!!
-    //Fill with code
+void bumperCB(const kobuki_msgs::BumperEvent msg){ 
+	//Fill with code
+	if(msg.bumper == 0)
+		bumperLeft = !bumperLeft;
+	else if(msg.bumper == 1)
+		bumperCenter = !bumperCenter;
+	else if(msg.bumper == 2)
+		bumperRight = !bumperRight;
 }
 
 void cliffCB(const kobuki_msgs::CliffEvent msg ) {
@@ -40,21 +48,34 @@ void laserCallback(const sensor_msgs::LaserScan::ConstPtr& msg){
 		
 	}
 
-	x_bar1 = avgranges(x, 0, 125); //array size 126
-	x_bar2 = avgranges(x, 126, 250); //array size 125
+
+	if (laserRange == 11)
+	laserRange = 0;
 	
-	fLeftY = avgranges(y, 370, 469);
-	fRightY = avgranges(y, 170, 269);
-
-	centreD = avgranges(d, 269, 369);           
-	rightD = avgranges(d,0,99);
-	leftD = avgranges(d, 539, 639);
-
-	if ( rightD < 1) {
-		control = (-1)* (p) * (x_bar2-x_bar1);   
+	double x[640], y[640], d[640];
+	incr= msg->angle_increment;
+	angle_ri = msg->angle_min;
+	angle_lef= msg->angle_max;
+	for (int i = 0; i<= 639; ++i) {
+		d[i] = msg->ranges[i];
+		x[i] = d[i]*(cos((pi/2.0) - 0.506145 + (i)*incr));
+		y[i] = d[i]*(sin((pi/2.0) - 0.506145 + (i)*incr));
+		
 	}
-	else control=0;
-}
+	
+	double n = 0.0;
+	
+	//centreD = avgranges(d, 269, 369);
+	
+	for (i=269; i<=369; ++i) {
+
+	        if (d[i] == d[i]) {		// check if a real number
+        	    frontDist += d[i];
+            	    n+=1;
+        	}
+    }
+    
+   frontDist = frontDist/n;
 
 //-------------------------------------------------------------
 
@@ -86,6 +107,7 @@ int main(int argc, char **argv)
 
 	double angular = 0.2;
 	double linear = 0.0;
+	bool FirstTime = True;
 
 	geometry_msgs::Twist vel;
 	vel.angular.z = angular;
@@ -95,6 +117,8 @@ int main(int argc, char **argv)
 
 	sc.playWave(path_to_sounds + "sound.wav");
 	ros::Duration(0.5).sleep();
+	
+	
 
 	while(ros::ok()){
 		ros::spinOnce();
@@ -107,7 +131,7 @@ int main(int argc, char **argv)
 			//vel_pub.publish(vel);
 			vel_pub.publish(follow_cmd);
 			
-			if (vel_pub.publish < 0.05 && !frontBump && !leftBump && !rightBump && frontdist > 1){
+			if (vel_pub.publish < 0.05 && !bumperCenter && !bumperLeft && !bumperRight && frontDist > 1){ 
 				world_state = 1;
 			}
 
@@ -117,7 +141,7 @@ int main(int argc, char **argv)
 			
 			vel_pub.publish(follow_cmd);
 			
-			if (vel_pub.publish > 0.05 && !frontBump && !leftBump && !rightBump && frontDist < 1){
+			if (vel_pub.publish > 0.05 && !bumperCenter && !bumperLeft && !bumperRight && frontDist < 1){
 				world_state = 0;
 			}
 				
@@ -146,6 +170,9 @@ int main(int argc, char **argv)
 				world_state = 2;
 				FirstTime = true;
 			}
+			else{
+				world_state = 0;
+			}
 			
 		}
 		else if(world_state == 2){
@@ -164,7 +191,9 @@ int main(int argc, char **argv)
 			vel_pub.publish(vel);
 			sleep(2);
 			
-			if(			
+			if (vel_pub.publish > 0.05 && !bumperCenter && !bumperLeft && !bumperRight && frontDist < 1){
+				world_state = 0;
+			}
 		}
 		
 		else if(world_state == 6) { //i.e. lifted up
