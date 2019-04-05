@@ -47,7 +47,7 @@ void wheel_dropCB(const kobuki_msgs::WheelDropEvent msg ) {
 	
 }
 
-void callback1(const ros::TimerEvent&){ 
+void timerCallback(const ros::TimerEvent&){ 
 	ROS_INFO("Timer Callback triggered");
 	world_state = 2;
 }
