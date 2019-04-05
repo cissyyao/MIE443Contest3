@@ -2,6 +2,11 @@
 #include <ros/package.h>
 #include <imageTransporter.hpp>
 #include <kobuki_msgs/BumperEvent.h>
+#include <opencv2/core/core.hpp>
+#include <opencv2/highgui/highgui.hpp>
+#include <iostream>
+#include <sensor_msgs/LaserScan.h>
+#include <math.h>
 #include <kobuki_msgs/WheelDropEvent.h>
 
 using namespace std; //hello
@@ -9,6 +14,7 @@ using namespace std; //hello
 geometry_msgs::Twist follow_cmd;
 int world_state;
 
+double pi = 3.14159;
 double frontDist = 0.0;
 double laserRange = 10;
 int laserSize = 0, laserOffset = 0, desiredAngle = 10;
@@ -22,12 +28,18 @@ void followerCB(const geometry_msgs::Twist msg){
 
 void bumperCB(const kobuki_msgs::BumperEvent msg){ 
 	//Fill with code
-	if(msg.bumper == 0)
+	if(msg.bumper == 0){
 		bumperLeft = !bumperLeft;
-	else if(msg.bumper == 1)
+		world_state = 2;
+		}
+	else if(msg.bumper == 1){
 		bumperCenter = !bumperCenter;
-	else if(msg.bumper == 2)
+		world_state = 2; // just for testing, should be 3
+		}
+	else if(msg.bumper == 2){
 		bumperRight = !bumperRight;
+		world_state = 2;
+		}
 }
 
 void wheel_dropCB(const kobuki_msgs::WheelDropEvent msg ) {
@@ -47,51 +59,37 @@ void wheel_dropCB(const kobuki_msgs::WheelDropEvent msg ) {
 	
 }
 
+void timerCallback(const ros::TimerEvent&){ 
+	ROS_INFO("Timer Callback triggered");
+	world_state = 2;
+}
+
 void laserCallback(const sensor_msgs::LaserScan::ConstPtr& msg){
 	laserSize = (msg->angle_max - msg->angle_min)/msg->angle_increment;
 	laserOffset = desiredAngle*pi/(180*msg->angle_increment);
 
-	double x[640], y[640], d[640]; //an array of all x and y distance values of laser readings
+	double d[640]; //an array of all d
 	
-	incr= msg->angle_increment;
-	angle_ri = msg->angle_min;
-	angle_lef= msg->angle_max;
+	
 	for (int i = 0; i<= 639; ++i) {
 		d[i] = msg->ranges[i];
-		x[i] = d[i]*(cos((pi/2.0) - 0.506145 + (i)*incr));
-		y[i] = d[i]*(sin((pi/2.0) - 0.506145 + (i)*incr));
 		
 	}
 
 
-	if (laserRange == 11)
-	laserRange = 0;
-	
-	double x[640], y[640], d[640];
-	incr= msg->angle_increment;
-	angle_ri = msg->angle_min;
-	angle_lef= msg->angle_max;
-	for (int i = 0; i<= 639; ++i) {
-		d[i] = msg->ranges[i];
-		x[i] = d[i]*(cos((pi/2.0) - 0.506145 + (i)*incr));
-		y[i] = d[i]*(sin((pi/2.0) - 0.506145 + (i)*incr));
-		
-	}
-	
-	double n = 0.0;
+	int n = 0;
 	
 	//centreD = avgranges(d, 269, 369);
 	
-	for (i=269; i<=369; ++i) {
+	for ( int j=269; j<=369; ++j) {
 
-	        if (d[i] == d[i]) {		// check if a real number
-        	    frontDist += d[i];
+	        if (d[j] == d[j]) {		// check if a real number
+        	    frontDist += d[j];
             	    n+=1;
         	}
-    }
-    
+}    
    frontDist = frontDist/n;
-
+}
 //-------------------------------------------------------------
 
 int main(int argc, char **argv)
@@ -110,19 +108,16 @@ int main(int argc, char **argv)
 	ros::Subscriber bumper = nh.subscribe("mobile_base/events/bumper", 10, &bumperCB);
 	ros::Subscriber wheel_drop = nh.subscribe("mobile_base/events/wheel_drop", 10, &wheel_dropCB);
 	
-	std::chrono::time_point<std::chrono::system_clock> start;
-	start = std::chrono::system_clock::now();
-	uint64_t secondsElapsed = 0;
 
 	imageTransporter rgbTransport("camera/image/", sensor_msgs::image_encodings::BGR8); //--for Webcam
 	//imageTransporter rgbTransport("camera/rgb/image_raw", sensor_msgs::image_encodings::BGR8); //--for turtlebot Camera
 	imageTransporter depthTransport("camera/depth_registered/image_raw", sensor_msgs::image_encodings::TYPE_32FC1);
 
-	int world_state = 0;
+	world_state = 0;
 
 	double angular = 0.2;
 	double linear = 0.0;
-	bool FirstTime = True;
+	bool FirstTime = true;
 
 	geometry_msgs::Twist vel;
 	vel.angular.z = angular;
@@ -130,7 +125,7 @@ int main(int argc, char **argv)
 	
 	bool FirstTimeSurprised = true;
 
-	sc.playWave(path_to_sounds + "sound.wav");
+	//sc.playWave(path_to_sounds + "sound.wav");
 	ros::Duration(0.5).sleep();
 	
 	
@@ -142,14 +137,20 @@ int main(int argc, char **argv)
 		//...................................
 		
 		//check owner's disappearance
-		if (vel_pub.publish < 0.05 && !bumperCenter && !bumperLeft && !bumperRight && frontDist > 1 && !wheelLeft && !wheelRight) { 
+		/*if (vel_pub.publish < 0.05 && !bumperCenter && !bumperLeft && !bumperRight && frontDist > 1 && !wheelLeft && !wheelRight) { 
 		world_state = 1;
-		}
+		}*/
+		ROS_INFO("World State: %d", world_state);
+		
+		if (vel_pub.publish(follow_cmd) > 0.05 && !bumperCenter && !bumperLeft && !bumperRight && frontDist < 1 && !wheelLeft && !wheelRight) {
+				world_state = 0;
+			}
 		
 		//neutral state, following human
 		if(world_state == 0){
 			//fill with your code
 			//vel_pub.publish(vel);
+			
 			vel_pub.publish(follow_cmd);
 			//show image of happy franklin
 			//play happy music
@@ -160,17 +161,17 @@ int main(int argc, char **argv)
 		else if(world_state == 1){
 			
 			vel_pub.publish(follow_cmd);
+			ros::Timer timer = nh.createTimer(ros::Duration(15), timerCallback);
 			
-			if (vel_pub.publish > 0.05 && !bumperCenter && !bumperLeft && !bumperRight && frontDist < 1 && !wheelLeft && !wheelRight) {
+			/*if (vel_pub.publish > 0.05 && !bumperCenter && !bumperLeft && !bumperRight && frontDist < 1 && !wheelLeft && !wheelRight) {
 				world_state = 0;
-			}
+			}*/
 				
 			if (FirstTime == true){
-				suprisedStart = secondsElapsed;
 				FirstTime = false;
-				sc.playWave(mie443_contest3/sounds+"surpised.wav"); //figure out which the sound is playing continuously
-				Mat surpriseFace = imread("filename");
-				imshow(surpriseFace);
+				sc.playWave("/home/turtlebot/catkin_ws/src/mie443_contest3/sounds/surpised.wav"); //figure out which the sound is playing continuously
+				//Mat surpriseFace = imread("filename");
+				//imshow(surpriseFace);
 				
 				//jerk back in surprise initially
 				linear = -2;
@@ -186,20 +187,16 @@ int main(int argc, char **argv)
 				
 			}
 			
-			if ((secondsElapsed - surprisedStart) >= 15){
-				world_state = 2;
-				FirstTime = true;
-			}
-			else{
+			if (!timer){
 				world_state = 0;
 			}
 			
 		}
 		//after >15s of owner's disappearance
 		else if(world_state == 2){
-			sc.playWave(mie443_contest3/sounds+"scared.wav");
-			Mat scaredFace = imread("filename");
-			imshow(scaredFace);
+			sc.playWave("/home/turtlebot/catkin_ws/src/mie443_contest3/sounds/sound.wav");
+			//Mat scaredFace = imread("filename");
+			//imshow(scaredFace);
 			
 			angular = pi;
 			linear = 0;
@@ -212,9 +209,9 @@ int main(int argc, char **argv)
 			vel_pub.publish(vel);
 			sleep(2);
 			
-			if (vel_pub.publish > 0.05 && !bumperCenter && !bumperLeft && !bumperRight && frontDist < 1 && !wheelLeft && !wheelRight) {
+			/*if (vel_pub.publish > 0.05 && !bumperCenter && !bumperLeft && !bumperRight && frontDist < 1 && !wheelLeft && !wheelRight) {
 				world_state = 0;
-			}
+			}*/
 		}
 		
 		//world_state == 3, cannot track bc obstacle
@@ -230,7 +227,6 @@ int main(int argc, char **argv)
 			//imshow(excitedFace);
 			ROS_INFO("EXCITED!!");
 		}
-		secondsElapsed = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now()-start).count();
 	}
 
 	return 0;
