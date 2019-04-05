@@ -47,6 +47,11 @@ void wheel_dropCB(const kobuki_msgs::WheelDropEvent msg ) {
 	
 }
 
+void callback1(const ros::TimerEvent&){ 
+	ROS_INFO("Timer Callback triggered");
+	world_state = 2;
+}
+
 void laserCallback(const sensor_msgs::LaserScan::ConstPtr& msg){
 	laserSize = (msg->angle_max - msg->angle_min)/msg->angle_increment;
 	laserOffset = desiredAngle*pi/(180*msg->angle_increment);
@@ -160,6 +165,7 @@ int main(int argc, char **argv)
 		else if(world_state == 1){
 			
 			vel_pub.publish(follow_cmd);
+			ros::Timer timer = n.createTimer(ros::Duration(15), timerCallback);
 			
 			if (vel_pub.publish > 0.05 && !bumperCenter && !bumperLeft && !bumperRight && frontDist < 1 && !wheelLeft && !wheelRight) {
 				world_state = 0;
@@ -186,11 +192,7 @@ int main(int argc, char **argv)
 				
 			}
 			
-			if ((secondsElapsed - surprisedStart) >= 15){
-				world_state = 2;
-				FirstTime = true;
-			}
-			else{
+			if (!timer){
 				world_state = 0;
 			}
 			
