@@ -22,6 +22,23 @@ int laserSize = 0, laserOffset = 0, desiredAngle = 10;
 bool bumperLeft=0, bumperCenter=0, bumperRight=0;
 bool wheelLeft = 0, wheelRight = 0;
 
+double avgranges(double arraytoAvg [], int start, int end) {
+    double sum = 0.0;
+    double n = 0.0;
+    int i;
+    
+    for (i=start; i<=end; ++i) {
+
+        if (arraytoAvg[i] == arraytoAvg[i]) {		// check if a real number
+            sum += arraytoAvg[i];
+            n+=1;
+        }
+    }
+    
+    return sum/n;
+}
+
+
 void followerCB(const geometry_msgs::Twist msg){
     follow_cmd = msg;
 }
@@ -68,6 +85,29 @@ void laserCallback(const sensor_msgs::LaserScan::ConstPtr& msg){
 	laserSize = (msg->angle_max - msg->angle_min)/msg->angle_increment;
 	laserOffset = desiredAngle*pi/(180*msg->angle_increment);
 
+	double x[640], y[640], d[640]; //an array of all x and y distance values of laser readings
+	
+	double incr= msg->angle_increment;
+	for (int i = 0; i<= 639; ++i) {
+		d[i] = msg->ranges[i];
+		
+	}
+	std::cout<<"1"<<std::endl;
+	//x_bar1 = avgranges(x, 0, 125); //array size 126
+	//x_bar2 = avgranges(x, 126, 250); //array size 125
+	
+	//fLeftY = avgranges(y, 370, 469);
+	//fRightY = avgranges(y, 170, 269);
+
+	frontDist = avgranges(d, 269, 369);           
+	//rightD = avgranges(d,0,99);
+	//leftD = avgranges(d, 539, 639);
+}
+
+/*void laserCallback(const sensor_msgs::LaserScan::ConstPtr& msg){
+	laserSize = (msg->angle_max - msg->angle_min)/msg->angle_increment;
+	laserOffset = desiredAngle*pi/(180*msg->angle_increment);
+
 	double d[640]; //an array of all d
 	
 	
@@ -76,8 +116,9 @@ void laserCallback(const sensor_msgs::LaserScan::ConstPtr& msg){
 		
 	}
 
-
-	int n = 0;
+	double l= msg ->ranges[300];
+	ROS_INFO("%d LAZER",l);
+	double n = 0;
 	
 	//centreD = avgranges(d, 269, 369);
 	
@@ -89,7 +130,7 @@ void laserCallback(const sensor_msgs::LaserScan::ConstPtr& msg){
         	}
 }    
    frontDist = frontDist/n;
-}
+}*/
 //-------------------------------------------------------------
 
 int main(int argc, char **argv)
@@ -104,6 +145,7 @@ int main(int argc, char **argv)
 	ros::Publisher vel_pub = nh.advertise<geometry_msgs::Twist>("cmd_vel_mux/input/teleop",1);
 
 	//subscribers
+	ros::Subscriber laser_sub = nh.subscribe("/scan", 10, &laserCallback);
 	ros::Subscriber follower = nh.subscribe("follower_velocity_smoother/smooth_cmd_vel", 10, &followerCB);
 	ros::Subscriber bumper = nh.subscribe("mobile_base/events/bumper", 10, &bumperCB);
 	ros::Subscriber wheel_drop = nh.subscribe("mobile_base/events/wheel_drop", 10, &wheel_dropCB);
@@ -140,11 +182,11 @@ int main(int argc, char **argv)
 		/*if (vel_pub.publish < 0.05 && !bumperCenter && !bumperLeft && !bumperRight && frontDist > 1 && !wheelLeft && !wheelRight) { 
 		world_state = 1;
 		}*/
-		ROS_INFO("World State: %d", world_state);
+		ROS_INFO("World State: %d.    FrontDist = %d", world_state, frontDist);
 		
-		if (vel_pub.publish(follow_cmd) > 0.05 && !bumperCenter && !bumperLeft && !bumperRight && frontDist < 1 && !wheelLeft && !wheelRight) {
-				world_state = 0;
-			}
+		if (!bumperCenter && !bumperLeft && !bumperRight && frontDist < 1 && !wheelLeft && !wheelRight) {
+		//		world_state = 0;
+	}
 		
 		//neutral state, following human
 		if(world_state == 0){
@@ -154,6 +196,9 @@ int main(int argc, char **argv)
 			vel_pub.publish(follow_cmd);
 			//show image of happy franklin
 			//play happy music
+			//if (vel_pub.publish(follow_cmd) > 0.05 && !bumperCenter && !bumperLeft && !bumperRight && frontDist < 1 && !wheelLeft && !wheelRight){
+			
+		//	}
 
 		}
 
@@ -163,7 +208,7 @@ int main(int argc, char **argv)
 			vel_pub.publish(follow_cmd);
 			ros::Timer timer = nh.createTimer(ros::Duration(15), timerCallback);
 			
-			/*if (vel_pub.publish > 0.05 && !bumperCenter && !bumperLeft && !bumperRight && frontDist < 1 && !wheelLeft && !wheelRight) {
+			/*if (follow_cmd > 0.05 && !bumperCenter && !bumperLeft && !bumperRight && frontDist < 1 && !wheelLeft && !wheelRight) {
 				world_state = 0;
 			}*/
 				
@@ -231,3 +276,4 @@ int main(int argc, char **argv)
 
 	return 0;
 }
+
