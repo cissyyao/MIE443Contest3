@@ -20,6 +20,7 @@ double pi = 3.14159;
 double frontDist = 0.0;
 double laserRange = 10;
 int laserSize = 0, laserOffset = 0, desiredAngle = 10;
+int bumperCount = 0;
 
 bool bumperLeft=0, bumperCenter=0, bumperRight=0;
 bool wheelLeft = 0, wheelRight = 0;
@@ -47,18 +48,18 @@ void followerCB(const geometry_msgs::Twist msg){
 
 void bumperCB(const kobuki_msgs::BumperEvent msg){ 
 	//Fill with code
-	if(msg.bumper == 0){
+	if(bumperCount >=5){
+		world_state = 5; //rage
+	}
+	else if(msg.bumper == 0 || msg.bumper == 2){
 		bumperLeft = !bumperLeft;
-		world_state = 1;
-		}
+		bumperRight = !bumperRight;
+		world_state = 4; //anger
+	}
 	else if(msg.bumper == 1){
 		bumperCenter = !bumperCenter;
 		world_state = 2; // just for testing, should be 3
-		}
-	else if(msg.bumper == 2){
-		bumperRight = !bumperRight;
-		world_state = 0;
-		}
+	}
 }
 
 void wheel_dropCB(const kobuki_msgs::WheelDropEvent msg ) {
