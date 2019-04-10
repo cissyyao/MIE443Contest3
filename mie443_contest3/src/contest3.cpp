@@ -18,30 +18,12 @@ geometry_msgs::Twist follow_cmd;
 int world_state;
 
 double pi = 3.14159;
-double frontDist = 0.0;
-double laserRange = 10;
-int laserSize = 0, laserOffset = 0, desiredAngle = 10;
 
 bool bumperLeft=0, bumperCenter=0, bumperRight=0;
 bool wheelLeft = 0, wheelRight = 0;
 bool timer_on = 0;
-
-double avgranges(double arraytoAvg [], int start, int end) {
-    double sum = 0.0;
-    double n = 0.0;
-    int i;
-    
-    for (i=start; i<=end; ++i) {
-
-        if (arraytoAvg[i] == arraytoAvg[i]) {		// check if a real number
-            sum += arraytoAvg[i];
-            n+=1;
-        }
-    }
-    
-    return sum/n;
-}
-
+bool firstTimeSurprised = true;
+int bumper_count = 0;
 
 void followerCB(const geometry_msgs::Twist msg){
     follow_cmd = msg;
@@ -51,31 +33,44 @@ void bumperCB(const kobuki_msgs::BumperEvent msg){
 	//Fill with code
 	if(msg.bumper == 0){
 		bumperLeft = !bumperLeft;
-		world_state = 1;
+		bumper_count +=1;
+		if (bumper_count < 5){
+			world_state = 4;
 		}
+		else{
+			world_state = 5;
+		}
+	}
 	else if(msg.bumper == 1){
 		bumperCenter = !bumperCenter;
-		world_state = 2; // just for testing, should be 3
-		}
+		world_state = 3;
+	}
 	else if(msg.bumper == 2){
 		bumperRight = !bumperRight;
-		world_state = 0;
+		bumper_count +=1;
+		if (bumper_count < 5){
+			world_state = 4;
 		}
+		else{
+			world_state = 5;
+		}
+	}
+	ROS_INFO("bumper_count %d", bumper_count);
 }
 
 void wheel_dropCB(const kobuki_msgs::WheelDropEvent msg ) {
-	
-	//int wheelstate = msg->state;
-	
 	//if wheel drop sensors lifted (state 1), world_state = 6
 	if(msg.DROPPED == 1)	{
 		wheelRight = !wheelRight;
 		ROS_INFO("RIGHT WHEEL IS LIFTED");
 		world_state = 6;
-		
-		
 	}
-	
+	/*
+	if(msg.RAISED == 1){ //alternative to the delay in world_state 6 in main
+		ROS_INFO("Returned to ground");
+		world_state = 0;
+	}	
+	*/
 }
 
 void timerCallback(const ros::TimerEvent&){ 
@@ -94,7 +89,6 @@ void timerCallback(const ros::TimerEvent&){
 	}
 }
 
-
 void markerCB (const visualization_msgs::Marker::ConstPtr& msg){
 	double poseX = msg->pose.position.x;
 	double poseY = msg->pose.position.y;
@@ -107,11 +101,9 @@ void markerCB (const visualization_msgs::Marker::ConstPtr& msg){
 	
 	else {
 		world_state = 0;
+		firstTimeSurprised = true;
 		std::cout<<"person found"<<std::endl;
 	}
-	//std::cout<< poseX <<std::endl;
-	//std::cout<< poseY <<std::endl;
-	//std::cout<< poseZ <<std::endl;
 }
 
 //-------------------------------------------------------------
@@ -132,10 +124,10 @@ int main(int argc, char **argv)
 	ros::Subscriber bumper = nh.subscribe("mobile_base/events/bumper", 10, &bumperCB);
 	ros::Subscriber wheel_drop = nh.subscribe("mobile_base/events/wheel_drop", 10, &wheel_dropCB);
 	ros::Subscriber marker = nh.subscribe("/turtlebot_follower/marker",10,&markerCB);
+	
 	ros::Timer timer = nh.createTimer(ros::Duration(10), timerCallback);
 	
-	imageTransporter rgbTransport("camera/image/", sensor_msgs::image_encodings::BGR8); //--for Webcam
-	//imageTransporter rgbTransport("camera/rgb/image_raw", sensor_msgs::image_encodings::BGR8); //--for turtlebot Camera
+	//imageTransporter rgbTransport("camera/image/", sensor_msgs::image_encodings::BGR8); //--for Webcam
 	imageTransporter depthTransport("camera/depth_registered/image_raw", sensor_msgs::image_encodings::TYPE_32FC1);
 
 	vel_pub = nh.advertise<geometry_msgs::Twist>("cmd_vel_mux/input/teleop", 1);
@@ -144,15 +136,10 @@ int main(int argc, char **argv)
 
 	double angular = 0.2;
 	double linear = 0.0;
-	bool FirstTime = true;
 
 	geometry_msgs::Twist vel;
 	vel.angular.z = angular;
 	vel.linear.x = linear;
-	
-	bool FirstTimeSurprised = true;
-
-
 
 	while(ros::ok()){
 		ros::spinOnce();
@@ -164,110 +151,131 @@ int main(int argc, char **argv)
 		
 		ROS_INFO("World State: %d", world_state);
 		
-		
-		//neutral state, following human
-		if(world_state == 0){
-			//fill with your code
-			//vel_pub.publish(vel);
-			
+		if(world_state == 0){ //neutral state, following human
 			vel_pub.publish(follow_cmd);
-			//show image of happy franklin
-			//play happy music
-			//if (!bumperCenter && !bumperLeft && !bumperRight && frontDist < 1 && !wheelLeft && !wheelRight){
-			//	world_state = 1;
-			//}
-
 		}
-
-		//world_state1 is surprised at owner's disappearance
-		else if(world_state == 1){
+		else if(world_state == 1){ //surprised, cannot find human			
+			if (firstTimeSurprised == true){
 			
-			vel_pub.publish(follow_cmd);			
-			/*if (follow_cmd > 0.05 && !bumperCenter && !bumperLeft && !bumperRight && frontDist < 1 && !wheelLeft && !wheelRight) {
-				world_state = 0;
-			}*/
-				
-			//if (FirstTime == true){
-				//FirstTime = false;
 				linear = -0.5;
 				angular = 0;
 				vel.linear.x = linear;
-				vel.angular.z = 0;
+				vel.angular.z = angular;
 				vel_pub.publish(vel);
 				ros::Duration(1).sleep();
-				linear = 0;
-				vel.linear.x = linear;
-				vel_pub.publish(vel);
-				//}
-				sc.playWave("/home/turtlebot/catkin_ws/src/mie443_contest3/sounds/surpised.wav"); //figure out which the sound is playing continuously
-				Mat surpriseFace = imread("/home/turtlebot/catkin_ws/src/mie443_contest3/surpriseFace.jpg");
-				namedWindow("surpriseFace", WINDOW_AUTOSIZE);
-				imshow("surpriseFace", surpriseFace); 
-				waitKey(2000);
-				destroyWindow("surpriseFace");
 				
-				//jerk back in surprise initially
-		}
-		//after >15s of owner's disappearance
-		else if(world_state == 2){
-			sc.playWave("/home/turtlebot/catkin_ws/src/mie443_contest3/sounds/sound.wav");
-			Mat scaredFace = imread("/home/turtlebot/catkin_ws/src/mie443_contest3/scaredFace.jpg");
-			namedWindow("scaredFace", WINDOW_AUTOSIZE);
-			imshow("scaredFace", scaredFace); 
-			waitKey(2000);
-			destroyWindow("scaredFace");
+				vel.linear.x = 0;
+				vel_pub.publish(vel);
+				
+				firstTimeSurprised = false;
+			}
+			sc.playWave("/home/turtlebot/catkin_ws/src/mie443_contest3/sounds/surprised.wav");
 			
-			angular = pi/2;
+			Mat surprised = imread("/home/turtlebot/catkin_ws/src/mie443_contest3/surprised.jpg");
+			namedWindow("surprised", WINDOW_AUTOSIZE);
+			imshow("surprised", surprised); 
+			waitKey(2000);
+			destroyWindow("surprised");
+		}
+		else if(world_state == 2){ //scared, cannot find human after 15s
+			sc.playWave("/home/turtlebot/catkin_ws/src/mie443_contest3/sounds/scared.wav");
+			
+			Mat scared = imread("/home/turtlebot/catkin_ws/src/mie443_contest3/scared.jpg");
+			namedWindow("scared", WINDOW_AUTOSIZE);
+			imshow("scared", scared); 
+			waitKey(2000);
+			destroyWindow("scared");
+			
 			linear = 0;
+			angular = 2*pi;
 			vel.linear.x = linear;
+			vel.angular.z = angular;
+			vel_pub.publish(vel);
+			ros::Duration(0.25).sleep();
+			
 			vel.angular.z = 0;
 			vel_pub.publish(vel);
-			ros::Duration(2).sleep();
+			
+			angular = -2*pi;
+			vel.angular.z = angular;
+			vel_pub.publish(vel);
+			ros::Duration(0.25).sleep();
+			
+			vel.angular.z = 0;
+			vel_pub.publish(vel);
+		}
+		else if(world_state == 3) { //sad, cannot follow human (middle bumper hit)
+			sc.playWave("/home/turtlebot/catkin_ws/src/mie443_contest3/sounds/sad.wav");
+			
+			Mat sad = imread("/home/turtlebot/catkin_ws/src/mie443_contest3/sad.jpg");
+			namedWindow("sad", WINDOW_AUTOSIZE);
+			imshow("sad", sad); 
+			waitKey(2000);
+			destroyWindow("sad");
+						
+			linear = 0;
+			angular = pi/4;
+			vel.linear.x = linear;
+			vel.angular.z = angular;
+			vel_pub.publish(vel);
+			ros::Duration(1).sleep();
+			
+			vel.angular.z = 0;
+			vel_pub.publish(vel);
+			
 			angular = -pi/4;
 			vel.angular.z = angular;
 			vel_pub.publish(vel);
-			ros::Duration(2).sleep();
+			ros::Duration(1).sleep();
+			
 			vel.angular.z = 0;
 			vel_pub.publish(vel);
 			
-			/*if (vel_pub.publish > 0.05 && !bumperCenter && !bumperLeft && !bumperRight && frontDist < 1 && !wheelLeft && !wheelRight) {
-				world_state = 0;
-			}*/
+			world_state = 0;
 		}
-		
-		//world_state == 3, cannot track bc obstacle
-		//world_state=4, bumper hit once
-		else if(world_state == 4) {
-			Mat Anger = imread("/home/cissy/catkin_ws/src/mie443_contest3/Anger.png", CV_LOAD_IMAGE_COLOR);
-			namedWindow("Anger", WINDOW_AUTOSIZE);
-			imshow("Anger", Anger); 
-			waitKey(2000);
-			destroyWindow("Anger");
-		//world_state=5, bumper hit multiple times
-		}
-		else if(world_state == 5) {
-			Mat Rage = imread("/home/cissy/catkin_ws/src/mie443_contest3/Rage.jpg", CV_LOAD_IMAGE_COLOR);
-			namedWindow("Rage", WINDOW_AUTOSIZE);
-			imshow("Rage", Rage); 
-			waitKey(2000);
-			destroyWindow("Rage");
-		}
-		//robot lifted up (excited)
-		else if(world_state == 6) { 
-			//display franklin excited face
-			//play laughing sound
-			//sc.playWave(mie443_contest3/sounds+"excited.wav"); //figure out which the sound is playing continuously
+		else if(world_state == 4) { //anger, side bumper hit
+			sc.playWave("/home/turtlebot/catkin_ws/src/mie443_contest3/sounds/anger.wav");
 			
-			ROS_INFO("World State = %d", world_state);
-			sc.playWave("/home/turtlebot/catkin_ws/src/mie443_contest3/sounds/sound.wav");
-			Mat excitedFace = imread("/home/turtlebot/catkin_ws/src/mie443_contest3/excitedFace.jpg");
-			namedWindow("excitedFace", WINDOW_AUTOSIZE);
-			imshow("excitedFace", excitedFace); 
+			Mat anger = imread("/home/cissy/catkin_ws/src/mie443_contest3/anger.png", CV_LOAD_IMAGE_COLOR);
+			namedWindow("anger", WINDOW_AUTOSIZE);
+			imshow("anger", anger); 
 			waitKey(2000);
-			destroyWindow("excitedFace");
+			destroyWindow("anger");
+			
+			world_state = 0;
+		}
+		else if(world_state == 5) { //rage, side bumper hit 5 times
+			Mat rage = imread("/home/cissy/catkin_ws/src/mie443_contest3/rage.jpg", CV_LOAD_IMAGE_COLOR);
+			namedWindow("rage", WINDOW_AUTOSIZE);
+			imshow("rage", rage); 
+			waitKey(2000);
+			destroyWindow("rage");
+			
+			linear = 0;
+			angular = pi;
+			vel.linear.x = linear;
+			vel.angular.z = angular;
+			vel_pub.publish(vel);
+			
+			sc.playWave("/home/turtlebot/catkin_ws/src/mie443_contest3/sounds/rage.wav");
+			ros::Duration(4).sleep();
+			
+			vel.angular.z = 0;
+			vel_pub.publish(vel);
+			
+			world_state = 0;
+		}
+		else if(world_state == 6) { //positively excited, picked up		
+			sc.playWave("/home/turtlebot/catkin_ws/src/mie443_contest3/sounds/excited.wav");
+			
+			Mat excited = imread("/home/turtlebot/catkin_ws/src/mie443_contest3/excited.jpg");
+			namedWindow("excited", WINDOW_AUTOSIZE);
+			imshow("excited", excited); 
+			waitKey(2000);
+			destroyWindow("excited");
+			
 			ros::Duration(5).sleep();
 			world_state = 0;
-			ROS_INFO("EXCITED!!");
 		}
 	}
 
