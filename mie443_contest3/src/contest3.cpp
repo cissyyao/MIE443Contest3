@@ -207,13 +207,6 @@ int main(int argc, char **argv)
 				destroyWindow("surpriseFace");
 				
 				//jerk back in surprise initially
-				
-				
-			
-			if (!timer){
-				world_state = 0;
-			}
-			
 		}
 		//after >15s of owner's disappearance
 		else if(world_state == 2){
