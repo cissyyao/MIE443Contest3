@@ -24,6 +24,7 @@ int laserSize = 0, laserOffset = 0, desiredAngle = 10;
 
 bool bumperLeft=0, bumperCenter=0, bumperRight=0;
 bool wheelLeft = 0, wheelRight = 0;
+bool timer_on = 0;
 
 double avgranges(double arraytoAvg [], int start, int end) {
     double sum = 0.0;
@@ -79,7 +80,18 @@ void wheel_dropCB(const kobuki_msgs::WheelDropEvent msg ) {
 
 void timerCallback(const ros::TimerEvent&){ 
 	ROS_INFO("Timer Callback triggered");
-	world_state = 2;
+	if (world_state == 1){
+		if (timer_on == 0){
+			timer_on = 1;
+		}
+		else{
+			world_state = 2;
+			timer_on = 0;
+		}
+	}
+	else {
+		timer_on = 0;
+	}
 }
 
 
@@ -120,7 +132,8 @@ int main(int argc, char **argv)
 	ros::Subscriber bumper = nh.subscribe("mobile_base/events/bumper", 10, &bumperCB);
 	ros::Subscriber wheel_drop = nh.subscribe("mobile_base/events/wheel_drop", 10, &wheel_dropCB);
 	ros::Subscriber marker = nh.subscribe("/turtlebot_follower/marker",10,&markerCB);
-
+	ros::Timer timer = nh.createTimer(ros::Duration(10), timerCallback);
+	
 	imageTransporter rgbTransport("camera/image/", sensor_msgs::image_encodings::BGR8); //--for Webcam
 	//imageTransporter rgbTransport("camera/rgb/image_raw", sensor_msgs::image_encodings::BGR8); //--for turtlebot Camera
 	imageTransporter depthTransport("camera/depth_registered/image_raw", sensor_msgs::image_encodings::TYPE_32FC1);
@@ -169,9 +182,7 @@ int main(int argc, char **argv)
 		//world_state1 is surprised at owner's disappearance
 		else if(world_state == 1){
 			
-			vel_pub.publish(follow_cmd);
-			ros::Timer timer = nh.createTimer(ros::Duration(15), timerCallback);
-			
+			vel_pub.publish(follow_cmd);			
 			/*if (follow_cmd > 0.05 && !bumperCenter && !bumperLeft && !bumperRight && frontDist < 1 && !wheelLeft && !wheelRight) {
 				world_state = 0;
 			}*/
