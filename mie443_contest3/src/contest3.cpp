@@ -236,7 +236,7 @@ int main(int argc, char **argv)
 		else if(world_state == 4) { //anger, side bumper hit
 			sc.playWave("/home/turtlebot/catkin_ws/src/mie443_contest3/sounds/anger.wav");
 			
-			Mat anger = imread("/home/cissy/catkin_ws/src/mie443_contest3/anger.jpg", CV_LOAD_IMAGE_COLOR);
+			Mat anger = imread("/home/turtlebot/catkin_ws/src/mie443_contest3/anger.jpg", CV_LOAD_IMAGE_COLOR);
 			namedWindow("anger", WINDOW_AUTOSIZE);
 			imshow("anger", anger); 
 			waitKey(2000);
@@ -245,7 +245,7 @@ int main(int argc, char **argv)
 			world_state = 0;
 		}
 		else if(world_state == 5) { //rage, side bumper hit 5 times
-			Mat rage = imread("/home/cissy/catkin_ws/src/mie443_contest3/rage.jpg", CV_LOAD_IMAGE_COLOR);
+			Mat rage = imread("/home/turtlebot/catkin_ws/src/mie443_contest3/rage.jpg", CV_LOAD_IMAGE_COLOR);
 			namedWindow("rage", WINDOW_AUTOSIZE);
 			imshow("rage", rage); 
 			waitKey(2000);
