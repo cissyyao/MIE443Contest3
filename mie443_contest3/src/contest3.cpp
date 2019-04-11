@@ -125,7 +125,7 @@ int main(int argc, char **argv)
 	ros::Subscriber wheel_drop = nh.subscribe("mobile_base/events/wheel_drop", 10, &wheel_dropCB);
 	ros::Subscriber marker = nh.subscribe("/turtlebot_follower/marker",10,&markerCB);
 	
-	ros::Timer timer = nh.createTimer(ros::Duration(10), timerCallback);
+	ros::Timer timer = nh.createTimer(ros::Duration(7.5), timerCallback);
 	
 	//imageTransporter rgbTransport("camera/image/", sensor_msgs::image_encodings::BGR8); //--for Webcam
 	imageTransporter depthTransport("camera/depth_registered/image_raw", sensor_msgs::image_encodings::TYPE_32FC1);
